@@ -4,15 +4,15 @@ import tensorflow as tf
 import cv2
 import sys
 sys.path.append("game_code/")
-import pong_fun # whichever is imported "as game" will be used
+import pong_fun as game # whichever is imported "as game" will be used
 import dummy_game
-import tetris_fun as game
+import tetris_fun
 import random
 import numpy as np
 from collections import deque
 
-GAME = 'tetris' # the name of the game being played for log files
-ACTIONS = 6 # number of valid actions
+GAME = 'pong' # the name of the game being played for log files
+ACTIONS = 3 # number of valid actions
 GAMMA = 0.99 # decay rate of past observations
 OBSERVE = 500. # timesteps to observe before training
 EXPLORE = 500. # frames over which to anneal epsilon
@@ -47,10 +47,10 @@ def createNetwork():
     W_conv3 = weight_variable([3, 3, 64, 64])
     b_conv3 = bias_variable([64])
     
-    W_fc1 = weight_variable([1600, 512])
-    b_fc1 = bias_variable([512])
+    W_fc1 = weight_variable([1600, 256])
+    b_fc1 = bias_variable([256])
 
-    W_fc2 = weight_variable([512, ACTIONS])
+    W_fc2 = weight_variable([256, ACTIONS])
     b_fc2 = bias_variable([ACTIONS])
 
     # input layer
@@ -105,7 +105,7 @@ def trainNetwork(s, readout, h_fc1, sess):
     # saving and loading networks
     saver = tf.train.Saver()
     sess.run(tf.initialize_all_variables())
-    checkpoint = tf.train.get_checkpoint_state("saved_networks")
+    checkpoint = tf.train.get_checkpoint_state("pong_networks")
     if checkpoint and checkpoint.model_checkpoint_path:
         saver.restore(sess, checkpoint.model_checkpoint_path)
         print "Successfully loaded:", checkpoint.model_checkpoint_path
@@ -185,7 +185,7 @@ def trainNetwork(s, readout, h_fc1, sess):
             state = "explore"
         else:
             state = "train"
-        print "TIMESTEP", t, "/ STATE", state, "/ LINES", game_state.total_lines, "/ EPSILON", epsilon, "/ ACTION", action_index, "/ REWARD", r_t, "/ Q_MAX %e" % np.max(readout_t)
+        # print "TIMESTEP", t, "/ STATE", state, "/ LINES", game_state.total_lines, "/ EPSILON", epsilon, "/ ACTION", action_index, "/ REWARD", r_t, "/ Q_MAX %e" % np.max(readout_t)
 
         # write info to files
         '''
