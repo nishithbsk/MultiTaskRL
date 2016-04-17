@@ -1,0 +1,6 @@
+[submodule "libs/DeepLearningVideoGames"]
+	path = libs/DeepLearningVideoGames
+	url = https://github.com/nishithbsk/DeepLearningVideoGames.git
+[submodule "libs/PyGame-Learning-Environment"]
+	path = libs/PyGame-Learning-Environment
+	url = https://github.com/ntasfi/PyGame-Learning-Environment.git
