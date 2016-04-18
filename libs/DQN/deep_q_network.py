@@ -7,10 +7,12 @@ import sys
 sys.path.append("game_code/")
 import pong_fun # whichever is imported "as game" will be used
 import dummy_game
-import tetris_fun as game
+import tetris_fun
 import random
 import numpy as np
 import argparse
+from ple import PLE
+from ple.games.flappybird import FlappyBird
 from collections import deque
 
 parser = argparse.ArgumentParser(description='Train a Deep-Q-Network')
@@ -42,6 +44,21 @@ def conv2d(x, W, stride):
 
 def max_pool_2x2(x):
     return tf.nn.max_pool(x, ksize = [1, 2, 2, 1], strides = [1, 2, 2, 1], padding = "SAME")
+
+def setupGame():
+    gameClass = FlappyBird(width=288, height=512, pipe_gap=100)
+    
+    fps = 30
+    frame_skip = 2
+    num_steps = 1
+    force_fps = False
+    display_screen = True
+    reward = 0.0
+    nb_frames = 15000
+
+    global game
+    game = PLE(gameClass, fps=fps, frame_skip=frame_skip, num_steps=num_steps,
+            force_fps=force_fps, display_screen=display_screen)
 
 def createNetwork():
     # network weights
@@ -92,7 +109,21 @@ def trainNetwork(s, readout, h_fc1, sess):
     train_step = tf.train.AdamOptimizer(1e-6).minimize(cost)
 
     # open up a game state to communicate with emulator
-    game_state = game.GameState()
+    #setupGame()
+    gameClass = FlappyBird(width=288, height=512, pipe_gap=100)
+    
+    fps = 30
+    frame_skip = 2
+    num_steps = 1
+    force_fps = False
+    display_screen = True
+    reward = 0.0
+    nb_frames = 15000
+
+    game = PLE(gameClass, fps=fps, frame_skip=frame_skip, num_steps=num_steps,
+            force_fps=force_fps, display_screen=display_screen)
+
+    game.init()
 
     # store the previous observations in replay memory
     D = deque()
@@ -105,23 +136,28 @@ def trainNetwork(s, readout, h_fc1, sess):
     h_file = open(logdir + "/hidden.txt", 'w')
 
     # get the first state by doing nothing and preprocess the image to 80x80x4
-    do_nothing = np.zeros(ACTIONS)
-    do_nothing[0] = 1
-    x_t, r_0, terminal = game_state.frame_step(do_nothing)
-    x_t = cv2.cvtColor(cv2.resize(x_t, (80, 80)), cv2.COLOR_BGR2GRAY)
+    r_0 = game.act(game.NOOP)
+    x_t = game.getScreenGrayscale()
+    terminal = game.game_over()
+    if terminal:
+        print "NOOOO"
+        game.reset_game()
+    
+    x_t = cv2.resize(x_t, (80, 80))
     ret, x_t = cv2.threshold(x_t,1,255,cv2.THRESH_BINARY)
     s_t = np.stack((x_t, x_t, x_t, x_t), axis = 2)
 
     # saving and loading networks
-    saver = tf.train.Saver()
+    #saver = tf.train.Saver()
     sess.run(tf.initialize_all_variables())
+    '''
     checkpoint = tf.train.get_checkpoint_state("saved_networks")
     if checkpoint and checkpoint.model_checkpoint_path:
         saver.restore(sess, checkpoint.model_checkpoint_path)
         print "Successfully loaded:", checkpoint.model_checkpoint_path
     else:
         print "Could not find old network weights"
-
+    '''
     epsilon = INITIAL_EPSILON
     t = 0
     while True:
@@ -142,8 +178,14 @@ def trainNetwork(s, readout, h_fc1, sess):
 
         for i in range(0, K):
             # run the selected action and observe next state and reward
-            x_t1_col, r_t, terminal = game_state.frame_step(a_t)
-            x_t1 = cv2.cvtColor(cv2.resize(x_t1_col, (80, 80)), cv2.COLOR_BGR2GRAY)
+            r_t = game.act(np.argmax(a_t))
+            x_t1 = game.getScreenGrayscale()
+            terminal = game.game_over()
+            if terminal:
+                print "NOOO2"
+                game = game.reset_game()
+
+            x_t1 = cv2.resize(x_t1, (80, 80))
             ret, x_t1 = cv2.threshold(x_t1,1,255,cv2.THRESH_BINARY)
             x_t1 = np.reshape(x_t1, (80, 80, 1))
             s_t1 = np.append(x_t1, s_t[:,:,1:], axis = 2)
@@ -195,7 +237,7 @@ def trainNetwork(s, readout, h_fc1, sess):
             state = "explore"
         else:
             state = "train"
-        print "TIMESTEP", t, "/ STATE", state, "/ LINES", game_state.total_lines, "/ EPSILON", epsilon, "/ ACTION", action_index, "/ REWARD", r_t, "/ Q_MAX %e" % np.max(readout_t)
+        print "TIMESTEP", t, "/ STATE", state, "/ EPSILON", epsilon, "/ ACTION", action_index, "/ REWARD", r_t, "/ Q_MAX %e" % np.max(readout_t)
 
         # write info to files
         '''
@@ -204,7 +246,6 @@ def trainNetwork(s, readout, h_fc1, sess):
             h_file.write(",".join([str(x) for x in h_fc1.eval(feed_dict={s:[s_t]})[0]]) + '\n')
             cv2.imwrite("logs_tetris/frame" + str(t) + ".png", x_t1)
         '''
-
 def playGame():
     sess = tf.InteractiveSession()
     s, readout, h_fc1 = createNetwork()
