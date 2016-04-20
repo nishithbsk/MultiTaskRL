@@ -183,7 +183,7 @@ def trainNetwork(s, readout, h_fc1, sess):
             terminal = game.game_over()
             if terminal:
                 print "NOOO2"
-                game = game.reset_game()
+                game.reset_game()
 
             x_t1 = cv2.resize(x_t1, (80, 80))
             ret, x_t1 = cv2.threshold(x_t1,1,255,cv2.THRESH_BINARY)

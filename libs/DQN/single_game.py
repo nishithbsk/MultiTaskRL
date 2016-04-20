@@ -27,19 +27,31 @@ final_epsilon = 0.05 # final value of epsilon
 replay_memory = 590000 # number of previous transitions to remember
 K = 1 # only select an action every Kth frame, repeat prev for others
 
-# Pick an action given state
-def pickAction(sess, state, readout):
+# Forward pass to obtain Q-values for every action
+def get_Q_values(sess, state, readout):
     return sess.run(readout, feed_dict={input = state})
 
+def calculate_loss(readout):
+    a = tf.placeholder("float", [None, num_actions])
+    y = tf.placeholder("float", [None])
+    readout_action = tf.reduce_sum(tf.mul(readout, a), reduction_indices = 1)
+    loss = tf.reduce_mean(tf.square(y - readout_action))
+    return loss
+
 def train(sess, s, readout, h_fc1):
-    
+    loss = calculate_loss(readout)
+    train_step = tf.train.AdamOptimizer(1e-6).minimize(cost)
+    # TODO: Complete train loop from
+    # yenchenlin1994/DeepLearningFlappyBird/blob/master/deep_q_network.py
 
 def main():
-    # launch a session
+    # Launch a session
     sess = tf.InteractiveSession()
-    # define network
+    # Set up game
+    setup_game()
+    # Define network
     s, readout, h_fc1 = build_model()
-    # train network
+    # Train network
     train(sess, s, readout, h_fc1)
 
 if __name__ == '__main__":
