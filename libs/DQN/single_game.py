@@ -27,4 +27,20 @@ final_epsilon = 0.05 # final value of epsilon
 replay_memory = 590000 # number of previous transitions to remember
 K = 1 # only select an action every Kth frame, repeat prev for others
 
+# Pick an action given state
+def pickAction(sess, state, readout):
+    return sess.run(readout, feed_dict={input = state})
 
+def train(sess, s, readout, h_fc1):
+    
+
+def main():
+    # launch a session
+    sess = tf.InteractiveSession()
+    # define network
+    s, readout, h_fc1 = build_model()
+    # train network
+    train(sess, s, readout, h_fc1)
+
+if __name__ == '__main__":
+    main()

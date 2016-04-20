@@ -27,7 +27,7 @@ def get_readout(input):
     readout = fc(h_fc1, 3, relu=False, name='readout_layer')
     return readout, h_fc1
     
-def create_model():
+def build_model():
     input = tf.placeholder(tf.float32, 
                            [batch_size, 
                             input_size[0], input_size[1], input_size[2])
