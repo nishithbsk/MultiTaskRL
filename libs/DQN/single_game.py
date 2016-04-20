@@ -8,15 +8,16 @@ import argparse
 from collections import deque
 from ple import PLE
 from model import *
+from game_utils import *
 
 # Parse arguments
 parser = argparse.ArgumentParser(description='Train a Deep-Q-Network')
-parser.add_argument('-g', '--game', help='Name of game')
+parser.add_argument('-gi', '--game_indices', type=tuple, help='List of game indices')
 parser.add_argument('-na', '--num_actions', type=int, help='Number of actions')
 args = parser.parse_args()
 
 # Constants
-game_name = args.game # the name of the game being played for log files
+game_indices = args.game_indices # the name of the game being played for log files
 num_actions = args.num_actions # number of valid actions
 batch_size = 32 # size of minibatch
 gamma = 0.99 # decay rate of past observations
@@ -41,8 +42,10 @@ def calculate_loss(readout):
 def train(sess, s, readout, h_fc1):
     loss = calculate_loss(readout)
     train_step = tf.train.AdamOptimizer(1e-6).minimize(cost)
-    # TODO: Complete train loop from
-    # yenchenlin1994/DeepLearningFlappyBird/blob/master/deep_q_network.py
+
+def setup_game():
+    global game
+    game = create_game(game_indices)[0]
 
 def main():
     # Launch a session
