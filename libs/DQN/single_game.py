@@ -130,8 +130,7 @@ def main():
     # Set up game
     setup_game()
     # Define network
-    state, Q_values, h_fc1 = import_model(1, batch_size,
-                                          input_size, num_actions)
+    state, Q_values, h_fc1 = import_model(1, input_size, num_actions)
     # Train network
     train(sess, state, Q_values, h_fc1)
 

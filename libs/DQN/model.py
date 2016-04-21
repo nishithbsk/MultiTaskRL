@@ -3,13 +3,11 @@ import numpy as np
 
 from model_utils import *
 
-def import_model(_model_num, _batch_size, _input_size, _num_actions):
+def import_model(_model_num, _input_size, _num_actions):
     global model_num
-    global batch_size
     global input_size
     global num_actions
     model_num = _model_num
-    batch_size = _batch_size
     input_size = _input_size
     num_actions = _num_actions    
     return build_model()
@@ -28,7 +26,7 @@ def get_readout(input):
     
 def build_model():
     input = tf.placeholder(tf.float32, 
-                           [batch_size, 
+                           [None, 
                             input_size[0], input_size[1], input_size[2]])
    
     readout, h_fc1 = get_readout(input) 
