@@ -9,6 +9,7 @@ force_fps = True
 display_screen = True
 
 def map_int_to_game(game_index):
+    game_index = int(game_index)
     game_class = None
     if game_index == 1:
         from ple.games.catcher import Catcher
@@ -34,12 +35,36 @@ def map_int_to_game(game_index):
     elif game_index == 8:
         from ple.games.waterworld import WaterWorld
         game_class = WaterWorld()
-    return PLE(gameClass, fps=fps, frame_skip=frame_skip, num_steps=num_steps, 
-               force_fps=force_fps, display_screen=display_screen)
+    return PLE(game_class, fps=fps, frame_skip=frame_skip, \
+               num_steps=num_steps, force_fps=force_fps, \
+               display_screen=display_screen)
  
 def create_game(game_indices):
     games = []
     for game_index in game_indices:
         games.append(map_int_to_game(game_index))
     return games
+
+def step(game, action, stacked_old_state, dummy_try=False):
+    reward = game.act(action)
+      
+    new_state = game.getScreenGrayscale()
+    new_state = cv2.resize(new_state, (80, 80))
+    _, new_state = cv2.threshold(new_state, 1, 255, cv2.THRESH_BINARY)
+    
+    if dummy_try:
+        stacked_new_state = np.stack((new_state,
+                                      new_state,
+                                      new_state,
+                                      new_state), axis = 2)
+    else:
+        new_state = np.reshape(new_state, (80, 80, 1))
+        stacked_new_state = np.append(new_state, 
+                                      stacked_old_state[:, :, :3], axis=2)
+
+    is_terminal = game.game_over()
+    if is_terminal:
+        game.reset_game()
+     
+    return stacked_new_state, stacked_old_state, reward, is_terminal
 
