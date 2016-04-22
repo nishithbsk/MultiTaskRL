@@ -19,15 +19,14 @@ def get_readout(input):
     h_pool2 = max_pool(h_conv2, 2, 2, 2, 2, name='pool2')
     h_conv3 = conv(h_pool2, 3, 3, 64, 1, 1, name='conv3')
     h_pool3 = max_pool(h_conv3, 2, 2, 2, 2, name='pool3')
-    fc1_in = tf.reshape(h_pool3, [batch_size, 256, 1])
+    fc1_in = tf.reshape(h_pool3, [-1, 256])
     h_fc1 = fc(fc1_in, 256, name='fc1')
-    readout = fc(h_fc1, 3, relu=False, name='readout_layer')
+    readout = fc(h_fc1, num_actions, relu=False, name='readout_layer')
     return readout, h_fc1
     
 def build_model():
     input = tf.placeholder(tf.float32, 
-                           [None, 
-                            input_size[0], input_size[1], input_size[2]])
+                           [1, input_size[0], input_size[1], input_size[2]])
    
     readout, h_fc1 = get_readout(input) 
     return input, readout, h_fc1

@@ -14,12 +14,11 @@ from game_utils import create_game, step
 # Parse arguments
 parser = argparse.ArgumentParser(description='Train a Deep-Q-Network')
 parser.add_argument('-gi', '--game_indices', type=tuple, help='List of game indices')
-parser.add_argument('-na', '--num_actions', type=int, help='Number of actions')
 args = parser.parse_args()
 
 # Constants
 game_indices = args.game_indices # the name of the game being played for log files
-num_actions = args.num_actions # number of valid actions
+num_actions = None # number of valid actions
 input_size = (80, 80, 4)
 batch_size = 32 # size of minibatch
 gamma = 0.99 # decay rate of past observations
@@ -41,7 +40,7 @@ def pick_action(Q_values_t, epsilon, t):
         else:
             action_onehot_t[np.argmax(Q_values_t)] = 1
     else:
-        action_onehot_t[game.NOOP] = 1
+        action_onehot_t[-1] = 1
     return action_onehot_t
 
 # Forward pass to obtain Q-values for every action
@@ -58,20 +57,21 @@ def calculate_loss(Q_values):
 
 def train(sess, state, Q_values, h_fc1):
     loss = calculate_loss(Q_values)
-    train_step = tf.train.AdamOptimizer(1e-6).minimize(cost)
+    train_step = tf.train.AdamOptimizer(1e-6).minimize(loss)
 
     D = deque()
     
     # Obtain first frame
-    s_0, _, r_0, is_terminal = step(game, game.NOOP,
-                             stacked_old_state=None, dummy_try=True)
+    s, _, r, is_terminal = step(game, -1,
+                                stacked_old_state=None, dummy_try=True)
 
     sess.run(tf.initialize_all_variables())
 
     epsilon = initial_epsilon
     t = 0
     while True:
-        Q_values_t = update_Q_values(sess, [state], Q_values)[0]
+        #Q_values_t = update_Q_values(sess, [s], Q_values)[0]
+        Q_values_t = Q_values.eval(feed_dict={input: [s]})[0]
         action_onehot_t = pick_action(Q_values_t, epsilon, t)
         
         # scale down epsilon
@@ -123,6 +123,9 @@ def train(sess, state, Q_values, h_fc1):
 def setup_game():
     global game
     game = create_game(game_indices)[0]
+    game.init()
+    global num_actions
+    num_actions = len(game.getActionSet())
 
 def main():
     # Launch a session
@@ -130,6 +133,7 @@ def main():
     # Set up game
     setup_game()
     # Define network
+    print num_actions
     state, Q_values, h_fc1 = import_model(1, input_size, num_actions)
     # Train network
     train(sess, state, Q_values, h_fc1)

@@ -1,3 +1,6 @@
+import cv2
+import numpy as np
+
 from ple import PLE
 
 fps = 30
@@ -45,9 +48,12 @@ def create_game(game_indices):
         games.append(map_int_to_game(game_index))
     return games
 
-def step(game, action, stacked_old_state, dummy_try=False):
-    reward = game.act(action)
-      
+def step(game, action_index, stacked_old_state, dummy_try=False):
+    print dir(game)
+    print game.getActionSet()
+    print game.getActionSet()[action_index]
+    reward = game.act(game.getActionSet()[action_index])
+    
     new_state = game.getScreenGrayscale()
     new_state = cv2.resize(new_state, (80, 80))
     _, new_state = cv2.threshold(new_state, 1, 255, cv2.THRESH_BINARY)
@@ -65,6 +71,7 @@ def step(game, action, stacked_old_state, dummy_try=False):
     is_terminal = game.game_over()
     if is_terminal:
         game.reset_game()
-     
+    print type(stacked_new_state)
+    print stacked_new_state.shape 
     return stacked_new_state, stacked_old_state, reward, is_terminal
 
