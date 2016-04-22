@@ -20,7 +20,7 @@ args = parser.parse_args()
 game_indices = args.game_indices # the name of the game being played for log files
 num_actions = None # number of valid actions
 input_size = (80, 80, 4)
-batch_size = 32 # size of minibatch
+batch_size = 1 # size of minibatch
 gamma = 0.99 # decay rate of past observations
 observe = 500 # timesteps to observe before training
 explore = 500 # frames over which to anneal epsilon
@@ -43,20 +43,16 @@ def pick_action(Q_values_t, epsilon, t):
         action_onehot_t[-1] = 1
     return action_onehot_t
 
-# Forward pass to obtain Q-values for every action
-def update_Q_values(sess, state, Q_values):
-    return sess.run(Q_values, feed_dict={input: state})
-
 def calculate_loss(Q_values):
     action_onehot = tf.placeholder("float", [None, num_actions])
     y = tf.placeholder("float", [None])
     current_Q = tf.reduce_sum(tf.mul(Q_values, action_onehot), 
                               reduction_indices = 1)
     loss = tf.reduce_mean(tf.square(y - current_Q))
-    return loss
+    return loss, action_onehot, y
 
 def train(sess, state, Q_values, h_fc1):
-    loss = calculate_loss(Q_values)
+    loss, action_onehot, y = calculate_loss(Q_values)
     train_step = tf.train.AdamOptimizer(1e-6).minimize(loss)
 
     D = deque()
@@ -64,14 +60,13 @@ def train(sess, state, Q_values, h_fc1):
     # Obtain first frame
     s, _, r, is_terminal = step(game, -1,
                                 stacked_old_state=None, dummy_try=True)
-
+    
     sess.run(tf.initialize_all_variables())
 
     epsilon = initial_epsilon
     t = 0
     while True:
-        #Q_values_t = update_Q_values(sess, [s], Q_values)[0]
-        Q_values_t = Q_values.eval(feed_dict={input: [s]})[0]
+        Q_values_t = Q_values.eval(feed_dict={state: [s]})[0]
         action_onehot_t = pick_action(Q_values_t, epsilon, t)
         
         # scale down epsilon
@@ -99,7 +94,7 @@ def train(sess, state, Q_values, h_fc1):
             s_t_batch = [d[3] for d in minibatch]
 
             y_batch = []
-            Q_values_t_batch = update_Q_values(sess, s_t_batch, Q_values)
+            Q_values_t_batch = Q_values.eval(feed_dict={state: s_t_batch})
             for i in range(len(minibatch)):
                 terminal = minibatch[i][4]
                 # if terminal, only equals reward
@@ -110,11 +105,11 @@ def train(sess, state, Q_values, h_fc1):
                                    gamma * np.max(Q_values_t_batch[i]))
 
             # perform gradient step
-            train_step.run(feed_dict = {
-                y : y_batch,
-                action_onehot : action_onehot_batch,
-                state : s_batch}
-            )
+            _, loss_value = sess.run([train_step, loss], 
+                            feed_dict = {y : y_batch,
+                                         action_onehot : action_onehot_batch,
+                                         state : s_batch})
+            print loss_value
 
         # update the old values
         s = s_t
@@ -133,7 +128,6 @@ def main():
     # Set up game
     setup_game()
     # Define network
-    print num_actions
     state, Q_values, h_fc1 = import_model(1, input_size, num_actions)
     # Train network
     train(sess, state, Q_values, h_fc1)

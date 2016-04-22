@@ -38,8 +38,8 @@ def map_int_to_game(game_index):
     elif game_index == 8:
         from ple.games.waterworld import WaterWorld
         game_class = WaterWorld()
-    return PLE(game_class, fps=fps, frame_skip=frame_skip, \
-               num_steps=num_steps, force_fps=force_fps, \
+    return PLE(game_class, fps=fps, frame_skip=frame_skip, 
+               num_steps=num_steps, force_fps=force_fps, 
                display_screen=display_screen)
  
 def create_game(game_indices):
@@ -49,9 +49,6 @@ def create_game(game_indices):
     return games
 
 def step(game, action_index, stacked_old_state, dummy_try=False):
-    print dir(game)
-    print game.getActionSet()
-    print game.getActionSet()[action_index]
     reward = game.act(game.getActionSet()[action_index])
     
     new_state = game.getScreenGrayscale()
@@ -71,7 +68,6 @@ def step(game, action_index, stacked_old_state, dummy_try=False):
     is_terminal = game.game_over()
     if is_terminal:
         game.reset_game()
-    print type(stacked_new_state)
-    print stacked_new_state.shape 
+    
     return stacked_new_state, stacked_old_state, reward, is_terminal
 
