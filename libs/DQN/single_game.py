@@ -22,37 +22,59 @@ num_actions = None # number of valid actions
 input_size = (80, 80, 4)
 batch_size = 1 # size of minibatch
 gamma = 0.99 # decay rate of past observations
-observe = 500 # timesteps to observe before training
+observe = 50 # timesteps to observe before training
 explore = 500 # frames over which to anneal epsilon
 initial_epsilon = 1.0 # starting value of epsilon
 final_epsilon = 0.05 # final value of epsilon
 replay_memory = 590000 # number of previous transitions to remember
-frames_per_action = 1 # only select an action every Kth frame, repeat prev for others
+frames_per_action = 1 # only select an action every Kth frame
 
-# Given Q values for every possible valid action
-# choose action.
+def get_status(t):
+    status = ""
+    if t <= observe:
+        status = "observe"
+    elif t > observe and t <= observe + explore:
+        status = "explore"
+    else:
+        status = "train"
+    return status
+
+# Given Q values for every possible valid action, choose action
 def pick_action(Q_values_t, epsilon, t):
-    action_onehot_t = np.zeros((num_actions))
+    a_t = np.zeros((num_actions))
     action_index = 0
     if t % frames_per_action == 0:
         if random.random() <= epsilon:
-            action_onehot_t[random.randrange(num_actions)] = 1
+            a_t[random.randrange(num_actions)] = 1
         else:
-            action_onehot_t[np.argmax(Q_values_t)] = 1
+            a_t[np.argmax(Q_values_t)] = 1
     else:
-        action_onehot_t[-1] = 1
-    return action_onehot_t
+        a_t[-1] = 1
+    return a_t
+
+def calculate_target(Q_values, state, minibatch):
+    target_batch, s_batch, a_t_batch = [], [], []
+    for d in minibatch:
+        s_d, a_t_d, r_t_d, s_t_d, terminal_d = d
+        Q_values_t_d = Q_values.eval(feed_dict={state: [s_t_d]})[0]
+        if terminal_d:
+            target_batch.append(r_t_d)
+        else:
+            target_batch.append(r_t_d + gamma*np.max(Q_values_t_d))
+        s_batch.append(s_d)
+        a_t_batch.append(a_t_d)
+
+    return target_batch, s_batch, a_t_batch
 
 def calculate_loss(Q_values):
-    action_onehot = tf.placeholder("float", [None, num_actions])
-    y = tf.placeholder("float", [None])
-    current_Q = tf.reduce_sum(tf.mul(Q_values, action_onehot), 
-                              reduction_indices = 1)
-    loss = tf.reduce_mean(tf.square(y - current_Q))
-    return loss, action_onehot, y
+    action = tf.placeholder("float", [None, num_actions])
+    target = tf.placeholder("float", [None])
+    current_Q = tf.reduce_sum(tf.mul(Q_values, action), reduction_indices = 1)
+    loss = tf.reduce_mean(tf.square(target - current_Q))
+    return loss, action, target
 
 def train(sess, state, Q_values, h_fc1):
-    loss, action_onehot, y = calculate_loss(Q_values)
+    loss, action, target = calculate_loss(Q_values)
     train_step = tf.train.AdamOptimizer(1e-6).minimize(loss)
 
     D = deque()
@@ -67,17 +89,17 @@ def train(sess, state, Q_values, h_fc1):
     t = 0
     while True:
         Q_values_t = Q_values.eval(feed_dict={state: [s]})[0]
-        action_onehot_t = pick_action(Q_values_t, epsilon, t)
+        a_t = pick_action(Q_values_t, epsilon, t)
         
         # scale down epsilon
         if epsilon > final_epsilon and t > observe:
             epsilon -= (initial_epsilon - final_epsilon) / explore
 
-        s_t, s, r_t, is_terminal = step(game, np.argmax(action_onehot_t),
-                                     stacked_old_state=s)
+        s_t, s, r_t, is_terminal = step(game, np.argmax(a_t),
+                                        stacked_old_state=s)
         
         # store the transition in D
-        D.append((s, action_onehot_t, r_t, s_t, is_terminal))
+        D.append((s, a_t, r_t, s_t, is_terminal))
 
         if len(D) > replay_memory:
             D.popleft()
@@ -87,29 +109,19 @@ def train(sess, state, Q_values, h_fc1):
             # sample a minibatch to train on
             minibatch = random.sample(D, batch_size)
 
-            # get the batch variables
-            s_batch = [d[0] for d in minibatch]
-            action_onehot_batch = [d[1] for d in minibatch]
-            r_t_batch = [d[2] for d in minibatch]
-            s_t_batch = [d[3] for d in minibatch]
-
-            y_batch = []
-            Q_values_t_batch = Q_values.eval(feed_dict={state: s_t_batch})
-            for i in range(len(minibatch)):
-                terminal = minibatch[i][4]
-                # if terminal, only equals reward
-                if terminal:
-                    y_batch.append(r_t_batch[i])
-                else:
-                    y_batch.append(r_t_batch[i] + \
-                                   gamma * np.max(Q_values_t_batch[i]))
+            target_batch, a_t_batch, s_batch = \
+                                calculate_target(Q_values, state, minibatch)
 
             # perform gradient step
-            _, loss_value = sess.run([train_step, loss], 
-                            feed_dict = {y : y_batch,
-                                         action_onehot : action_onehot_batch,
-                                         state : s_batch})
-            print loss_value
+            sess.run(train_step, 
+                     feed_dict = {target : target_batch,
+                                  action : a_t_batch,
+                                  state : s_batch})
+            
+        # print info
+        status = get_status(t)
+        print "timestep:", t, "status:", status, "action:", np.argmax(a_t),\
+              "reward:", r_t, "max_Q:", np.max(Q_values_t), "epsilon:", epsilon
 
         # update the old values
         s = s_t
@@ -121,6 +133,7 @@ def setup_game():
     game.init()
     global num_actions
     num_actions = len(game.getActionSet())
+    print num_actions
 
 def main():
     # Launch a session
