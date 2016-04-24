@@ -12,26 +12,17 @@ def make_var(name, shape):
 def validate_padding(padding):
     assert padding in ('SAME', 'VALID')
 
-def conv(input, k_h, k_w, c_o, s_h, s_w, name, relu=True, padding=DEFAULT_PADDING, group=1):
+def conv(input, k_h, k_w, c_o, s_h, s_w, name, relu=True, padding=DEFAULT_PADDING):
     validate_padding(padding)
     c_i = input.get_shape()[-1]
-    assert c_i%group==0
-    assert c_o%group==0
-    convolve = lambda i, k: tf.nn.conv2d(i, k, [1, s_h, s_w, 1], padding=padding)
     with tf.variable_scope(name) as scope:
-        kernel = make_var('weights', shape=[k_h, k_w, c_i/group, c_o])
+        kernel = make_var('weights', shape=[k_h, k_w, c_i, c_o])
         biases = make_var('biases', [c_o])
-        if group==1:
-            conv = convolve(input, kernel)
-        else:
-            input_groups = tf.split(3, group, input)
-            kernel_groups = tf.split(3, group, kernel)
-            output_groups = [convolve(i, k) for i,k in zip(input_groups, kernel_groups)]
-            conv = tf.concat(3, output_groups)
+        conv = tf.nn.conv2d(input, kernel, strides = [1, s_h, s_w, 1], padding=padding)
         if relu:
-            bias = tf.reshape(tf.nn.bias_add(conv, biases), conv.get_shape().as_list())
-            return tf.nn.relu(bias, name=scope.name)
-        return tf.reshape(tf.nn.bias_add(conv, biases), conv.get_shape().as_list(), name=scope.name)
+            return tf.nn.relu(conv + biases)
+        else:
+            return conv + biases
 
 def relu(input, name):
     return tf.nn.relu(input, name=name)

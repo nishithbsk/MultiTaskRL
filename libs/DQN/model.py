@@ -26,7 +26,7 @@ def get_Q_values(input_tensor):
     
 def build_model():
     input_tensor = tf.placeholder(tf.float32, 
-                                  [1, 
+                                  [None, 
                                    input_size[0], input_size[1], input_size[2]])
    
     Q_values, h_fc1 = get_Q_values(input_tensor) 
