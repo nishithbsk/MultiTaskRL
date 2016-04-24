@@ -20,7 +20,7 @@ args = parser.parse_args()
 game_indices = args.game_indices # the name of the game being played for log files
 num_actions = None # number of valid actions
 input_size = (80, 80, 4)
-batch_size = 1 # size of minibatch
+batch_size = 32 # size of minibatch
 gamma = 0.99 # decay rate of past observations
 observe = 50 # timesteps to observe before training
 explore = 500 # frames over which to anneal epsilon
@@ -109,7 +109,7 @@ def train(sess, state, Q_values, h_fc1):
             # sample a minibatch to train on
             minibatch = random.sample(D, batch_size)
 
-            target_batch, a_t_batch, s_batch = \
+            target_batch, s_batch, a_t_batch = \
                                 calculate_target(Q_values, state, minibatch)
 
             # perform gradient step
