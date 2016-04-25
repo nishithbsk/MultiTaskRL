@@ -14,10 +14,13 @@ from game_utils import create_game, step
 # Parse arguments
 parser = argparse.ArgumentParser(description='Train a Deep-Q-Network')
 parser.add_argument('-gi', '--game_indices', type=tuple, help='List of game indices')
+parser.add_argument('-save_every', '--save_frequency', type=int, default=10000,
+                    help='Number of timesteps before saving model')
+parser.add_argument('--checkpoint_dir', default='saved_networks', help='Checkpoint directory')
 args = parser.parse_args()
 
 # Constants
-game_indices = args.game_indices # the name of the game being played for log files
+checkpoint_dir = None
 num_actions = None # number of valid actions
 input_size = (80, 80, 4)
 batch_size = 32 # size of minibatch
@@ -28,6 +31,16 @@ initial_epsilon = 1.0 # starting value of epsilon
 final_epsilon = 0.05 # final value of epsilon
 replay_memory = 590000 # number of previous transitions to remember
 frames_per_action = 1 # only select an action every Kth frame
+
+def load_checkpoint(sess, saver):
+    if not os.path.exists(checkpoint_dir):
+        os.makedirs(checkpoint_dir)
+    checkpoint = tf.train.get_checkpoint_state(checkpoint_dir)
+    if checkpoint and checkpoint.model_checkpoint_path:
+        saver.restore(sess, checkpoint.model_checkpoint_path)
+        print "Successfully loaded:", checkpoint.model_checkpoint_path
+    else:
+        print "Could not find old network weights"
 
 def get_status(t):
     status = ""
@@ -82,8 +95,11 @@ def train(sess, state, Q_values, h_fc1):
     # Obtain first frame
     s, _, r, is_terminal = step(game, -1,
                                 stacked_old_state=None, dummy_try=True)
-    
+
+    # saving and loading networks
+    saver = tf.train.Saver()
     sess.run(tf.initialize_all_variables())
+    load_checkpoint(sess, saver)
 
     epsilon = initial_epsilon
     t = 0
@@ -118,28 +134,36 @@ def train(sess, state, Q_values, h_fc1):
                                   action : a_t_batch,
                                   state : s_batch})
             
-        # print info
+        # print info and save network
         status = get_status(t)
-        print "timestep:", t, "status:", status, "action:", np.argmax(a_t),\
-              "reward:", r_t, "max_Q:", np.max(Q_values_t), "epsilon:", epsilon
+        if r_t < 0.0 or r_t > 0.0:
+            print "timestep:", t, "status:", status, \
+                  "action:", np.argmax(a_t), "reward:", r_t, \
+                  "max_Q:", np.max(Q_values_t), "epsilon:", epsilon
+        if t % args.save_frequency == 0:
+            saver.save(sess, checkpoint_dir + '/' + 'saved', global_step = t)
 
         # update the old values
         s = s_t
         t += 1
 
-def setup_game():
+def setup_environment():
     global game
-    game = create_game(game_indices)[0]
+    game = create_game(args.game_indices)[0]
     game.init()
+
+    global checkpoint_dir
+    checkpoint_dir = args.checkpoint_dir + '-' + str(args.game_indices[0])
+
     global num_actions
     num_actions = len(game.getActionSet())
-    print num_actions
+    print "Number of valid actions:", num_actions
 
 def main():
     # Launch a session
     sess = tf.InteractiveSession()
     # Set up game
-    setup_game()
+    setup_environment()
     # Define network
     state, Q_values, h_fc1 = import_model(1, input_size, num_actions)
     # Train network

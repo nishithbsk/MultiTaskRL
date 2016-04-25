@@ -4,12 +4,11 @@ import numpy as np
 from ple import PLE
 
 fps = 30
-frame_skip = 2
+frame_skip = 1
 num_steps = 1
-reward = 0.0
-nb_frames = 15000
 force_fps = True
 display_screen = True
+reward_values = {} # for customized reward values
 
 def map_int_to_game(game_index):
     game_index = int(game_index)
@@ -50,7 +49,7 @@ def create_game(game_indices):
 
 def step(game, action_index, stacked_old_state, dummy_try=False):
     reward = game.act(game.getActionSet()[action_index])
-    
+
     new_state = game.getScreenGrayscale()
     new_state = cv2.resize(new_state, (80, 80))
     _, new_state = cv2.threshold(new_state, 1, 255, cv2.THRESH_BINARY)
