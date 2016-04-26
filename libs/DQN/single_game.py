@@ -13,7 +13,9 @@ from game_utils import create_game, step
 
 # Parse arguments
 parser = argparse.ArgumentParser(description='Train a Deep-Q-Network')
-parser.add_argument('-gi', '--game_indices', type=tuple, help='List of game indices')
+parser.add_argument('--ale', action='store_true', help='Train on ALE')
+parser.add_argument('--ple', action='store_true', help='Train on PLE')
+parser.add_argument('-g', '--game_file', type=str, help='A file with name of games line by line')
 parser.add_argument('-save_every', '--save_frequency', type=int, default=10000,
                     help='Number of timesteps before saving model')
 parser.add_argument('--checkpoint_dir', default='saved_networks', help='Checkpoint directory')
@@ -149,11 +151,13 @@ def train(sess, state, Q_values, h_fc1):
 
 def setup_environment():
     global game
-    game = create_game(args.game_indices)[0]
+    games, game_names = create_game(args.game_file, args.ale, args.ple)
+    game = games[0]
+    game_name = game_names[0]
     game.init()
 
     global checkpoint_dir
-    checkpoint_dir = args.checkpoint_dir + '-' + str(args.game_indices[0])
+    checkpoint_dir = args.checkpoint_dir + '-' + game_name
 
     global num_actions
     num_actions = len(game.getActionSet())
