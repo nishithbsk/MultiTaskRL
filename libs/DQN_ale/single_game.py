@@ -7,14 +7,11 @@ import sys
 import argparse
 
 from collections import deque
-from ple import PLE
 from model import *
 from game_utils import create_game, step
 
 # Parse arguments
 parser = argparse.ArgumentParser(description='Train a Deep-Q-Network')
-parser.add_argument('--ale', action='store_true', help='Train on ALE')
-parser.add_argument('--ple', action='store_true', help='Train on PLE')
 parser.add_argument('-g', '--game_file', type=str, help='A file with name of games line by line')
 parser.add_argument('-save_every', '--save_frequency', type=int, default=10000,
                     help='Number of timesteps before saving model')
@@ -64,7 +61,7 @@ def pick_action(Q_values_t, epsilon, t):
         else:
             a_t[np.argmax(Q_values_t)] = 1
     else:
-        a_t[-1] = 1
+        a_t[0] = 1
     return a_t
 
 def calculate_target(Q_values, state, minibatch):
@@ -95,7 +92,7 @@ def train(sess, state, Q_values, h_fc1):
     D = deque()
     
     # Obtain first frame
-    s, _, r, is_terminal = step(game, -1,
+    s, _, r, is_terminal = step(game, 0,
                                 stacked_old_state=None, dummy_try=True)
 
     # saving and loading networks
@@ -151,16 +148,15 @@ def train(sess, state, Q_values, h_fc1):
 
 def setup_environment():
     global game
-    games, game_names = create_game(args.game_file, args.ale, args.ple)
+    games, game_names = create_game(args.game_file)
     game = games[0]
     game_name = game_names[0]
-    game.init()
 
     global checkpoint_dir
     checkpoint_dir = args.checkpoint_dir + '-' + game_name
 
     global num_actions
-    num_actions = len(game.getActionSet())
+    num_actions = len(game.getLegalActionSet())
     print "Number of valid actions:", num_actions
 
 def main():

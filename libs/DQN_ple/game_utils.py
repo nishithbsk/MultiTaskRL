@@ -45,21 +45,13 @@ def map_game_to_PLE(game_name):
                num_steps=num_steps, force_fps=force_fps, 
                display_screen=display_screen)
  
-def create_game(game_file, is_ale, is_ple):
-    if is_ale and is_ple:
-        print "Game file cannot contain both ALE and PLE games"
-        sys.exit(1)
-    if not is_ale and not is_ple:
-        print "Please specify a game learning environment"
-        sys.exit(1)
-
+def create_game(game_file):
     games, names = [], []
     with open(game_file, 'r') as f:
         game_names = f.readlines()
         for game_name in game_names:
             game_name = game_name.lower()[:-1]
-            if is_ple:
-                games.append(map_game_to_PLE(game_name))
+            games.append(map_game_to_PLE(game_name))
             names.append(game_name)
     return games, names
 
