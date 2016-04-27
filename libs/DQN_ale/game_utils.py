@@ -13,14 +13,23 @@ def map_game_to_ALE(game_name):
     return game
 
 def create_game(game_file):
-    games, names = [], []
+    games, names, masks = [], [], []
     with open(game_file, 'r') as f:
         game_names = f.readlines()
-        for game_name in game_names:
-            game_name = game_name.lower()[:-1]
-            games.append(map_game_to_ALE(game_name))
-            names.append(game_name)
-    return games, names
+        for name in game_names:
+            name = name.lower()[:-1]
+            names.append(name)
+
+            game = map_game_to_ALE(name)
+            games.append(game)
+
+            valid_actions = game.getMinimalActionSet()
+            all_actions = game.getLegalActionSet()
+            valid_idx = np.where(np.in1d(all_actions, valid_actions))
+            mask = np.zeros_like(all_actions)
+            mask[valid_idx] = 1
+            masks.append(mask)
+    return games, names, masks
 
 def step(game, action_index, stacked_old_state, dummy_try=False):
     reward = game.act(game.getLegalActionSet()[action_index])

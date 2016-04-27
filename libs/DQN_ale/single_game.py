@@ -19,16 +19,14 @@ parser.add_argument('--checkpoint_dir', default='saved_networks', help='Checkpoi
 args = parser.parse_args()
 
 # Constants
-checkpoint_dir = None
-num_actions = None # number of valid actions
 input_size = (80, 80, 4)
 batch_size = 32 # size of minibatch
 gamma = 0.99 # decay rate of past observations
-observe = 500 # timesteps to observe before training
-explore = 500 # frames over which to anneal epsilon
-initial_epsilon = 1.0 # starting value of epsilon
-final_epsilon = 0.05 # final value of epsilon
-replay_memory = 590000 # number of previous transitions to remember
+observe = 10000 #500 # timesteps to observe before training
+explore = 3000000 #500 # frames over which to anneal epsilon
+initial_epsilon = 0.1 #1.0 # starting value of epsilon
+final_epsilon = 0.0001 #0.05 # final value of epsilon
+replay_memory = 50000 #590000 # number of previous transitions to remember
 frames_per_action = 1 # only select an action every Kth frame
 
 def load_checkpoint(sess, saver):
@@ -54,6 +52,7 @@ def get_status(t):
 # Given Q values for every possible valid action, choose action
 def pick_action(Q_values_t, epsilon, t):
     a_t = np.zeros((num_actions))
+
     action_index = 0
     if t % frames_per_action == 0:
         if random.random() <= epsilon:
@@ -63,6 +62,9 @@ def pick_action(Q_values_t, epsilon, t):
     else:
         a_t[0] = 1
     return a_t
+
+def mask_invalid_actions(Q_values_t):
+    return tf.mul(Q_values_t, mask)
 
 def calculate_target(Q_values, state, minibatch):
     target_batch, s_batch, a_t_batch = [], [], []
@@ -104,6 +106,8 @@ def train(sess, state, Q_values, h_fc1):
     t = 0
     while True:
         Q_values_t = Q_values.eval(feed_dict={state: [s]})[0]
+        Q_values_t = mask_invalid_actions(Q_values_t)
+
         a_t = pick_action(Q_values_t, epsilon, t)
         
         # scale down epsilon
@@ -138,7 +142,7 @@ def train(sess, state, Q_values, h_fc1):
         if r_t < 0.0 or r_t > 0.0:
             print "timestep:", t, "status:", status, \
                   "action:", np.argmax(a_t), "reward:", r_t, \
-                  "max_Q:", np.max(Q_values_t), "epsilon:", epsilon
+                  "max_Q:", np.max(Q_values_t.eval()), "epsilon:", epsilon
         if t % args.save_frequency == 0:
             saver.save(sess, checkpoint_dir + '/' + 'saved', global_step = t)
 
@@ -147,17 +151,24 @@ def train(sess, state, Q_values, h_fc1):
         t += 1
 
 def setup_environment():
+    games, game_names, masks = create_game(args.game_file)
+
     global game
-    games, game_names = create_game(args.game_file)
     game = games[0]
+
     game_name = game_names[0]
+
+    global mask
+    mask = masks[0]
+    print "mask:", mask
 
     global checkpoint_dir
     checkpoint_dir = args.checkpoint_dir + '-' + game_name
 
     global num_actions
     num_actions = len(game.getLegalActionSet())
-    print "Number of valid actions:", num_actions
+    print "Number of all actions:", num_actions
+    print "Number of valid actions, including NOOP:", np.sum(mask)
 
 def main():
     # Launch a session
