@@ -56,7 +56,7 @@ def pick_action(Q_values_t, epsilon, t):
     action_index = 0
     if t % frames_per_action == 0:
         if random.random() <= epsilon:
-            a_t[random.randrange(num_actions)] = 1
+            a_t[np.random.choice(valid_idxs)] = 1
         else:
             a_t[np.argmax(Q_values_t)] = 1
     else:
@@ -161,6 +161,10 @@ def setup_environment():
     global mask
     mask = masks[0]
     print "mask:", mask
+
+    global valid_idxs
+    valid_idxs = np.nonzero(mask)[0]
+    print "valid actions:", valid_idxs
 
     global checkpoint_dir
     checkpoint_dir = args.checkpoint_dir + '-' + game_name
