@@ -1,3 +1,6 @@
 [submodule "libs/PyGame-Learning-Environment"]
 	path = libs/PyGame-Learning-Environment
 	url = https://github.com/ntasfi/PyGame-Learning-Environment.git
+[submodule "libs/gym"]
+	path = libs/gym
+	url = https://github.com/openai/gym.git

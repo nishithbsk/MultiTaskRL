@@ -16,6 +16,7 @@ parser.add_argument('-g', '--game_file', type=str, help='A file with name of gam
 parser.add_argument('-save_every', '--save_frequency', type=int, default=10000,
                     help='Number of timesteps before saving model')
 parser.add_argument('--checkpoint_dir', default='saved_networks', help='Checkpoint directory')
+parser.add_argument('-i', '--interactive', action='store_true', help='Flag to activate display')
 args = parser.parse_args()
 
 # Constants
@@ -151,7 +152,7 @@ def train(sess, state, Q_values, h_fc1):
         t += 1
 
 def setup_environment():
-    games, game_names, masks = create_game(args.game_file)
+    games, game_names, masks = create_game(args.game_file, args.interactive)
 
     global game
     game = games[0]
