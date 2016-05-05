@@ -59,8 +59,8 @@ def step(game, action_index, stacked_old_state, dummy_try=False):
                                       new_state), axis = 2)
     else:
         new_state = np.reshape(new_state, (80, 80, 1))
-        stacked_new_state = np.append(new_state, 
-                                      stacked_old_state[:, :, :3], axis=2)
+        stacked_new_state = np.append(stacked_old_state[:, :, 1:], 
+                                      new_state, axis=2)
 
     is_terminal = game.game_over()
     if is_terminal:
