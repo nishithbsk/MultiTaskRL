@@ -4,3 +4,6 @@
 [submodule "libs/gym"]
 	path = libs/gym
 	url = https://github.com/openai/gym.git
+[submodule "libs/deep_rl_ale"]
+	path = libs/deep_rl_ale
+	url = https://github.com/Jabberwockyll/deep_rl_ale.git
