@@ -1,9 +1,9 @@
 [submodule "libs/PyGame-Learning-Environment"]
-	path = libs/PyGame-Learning-Environment
+	path = libs/envs/PyGame-Learning-Environment
 	url = https://github.com/ntasfi/PyGame-Learning-Environment.git
 [submodule "libs/gym"]
-	path = libs/gym
+	path = libs/envs/gym
 	url = https://github.com/openai/gym.git
 [submodule "libs/deep_rl_ale"]
-	path = libs/deep_rl_ale
+	path = libs/envs/deep_rl_ale
 	url = https://github.com/Jabberwockyll/deep_rl_ale.git
