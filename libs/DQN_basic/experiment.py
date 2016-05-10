@@ -1,15 +1,15 @@
-from visuals import Visuals
+#from visuals import Visuals
 
 def evaluate_agent(args, agent, test_emulator, test_stats):
 	step = 0
 	games = 0
 	reward = 0.0
 	reset = test_emulator.reset()
-	agent.test_state = list(next(zip(*reset)))
+	agent.test_state = list([iter(*reset).next()])
 	screen = test_emulator.preprocess()
-	visuals = None
-	if args.watch:
-		visuals = Visuals(test_emulator.get_possible_actions())
+	#visuals = None
+	#if args.watch:
+	#	visuals = Visuals(test_emulator.get_possible_actions())
 
 	while (step < args.test_steps) and (games < args.test_episodes):
 		while not test_emulator.isGameOver() and step < args.test_steps_hardcap:
@@ -27,8 +27,8 @@ def evaluate_agent(args, agent, test_emulator, test_stats):
 			#endif
 
 			# update visuals
-			if args.watch and (not (q_values is None)):
-				visuals.update(q_values)
+			#if args.watch and (not (q_values is None)):
+			#       visuals.update(q_values)
 
 			step +=1
 		# endwhile
@@ -36,7 +36,7 @@ def evaluate_agent(args, agent, test_emulator, test_stats):
 		if not (test_stats is None):
 			test_stats.add_game()
 		reset = test_emulator.reset()
-		agent.test_state = list(next(zip(*reset)))
+		agent.test_state = list([iter(*reset).next()])
 
 	return reward / games
 
@@ -64,4 +64,4 @@ def run_experiment(args, agent, test_emulator, test_stats):
 		test_stats.record(steps)
 		if results >= args.saving_threshold:
 			agent.save_model(epoch)
-		
+
