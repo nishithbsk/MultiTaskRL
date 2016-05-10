@@ -19,7 +19,7 @@ def main():
 	parser.add_argument("--watch",
 		help="if true, a pretrained model with the specified name is loaded and tested with the game screen displayed", 
 		action='store_true')
-
+        parser.add_argument("--retrain", help="if true, a pretrained model is loaded and trained", action='store_true')
 	parser.add_argument("--epochs", type=int, help="number of epochs", default=200)
 	parser.add_argument("--epoch_length", type=int, help="number of steps in an epoch", default=250000)
 	parser.add_argument("--test_steps", type=int, help="max number of steps per test", default=125000)
