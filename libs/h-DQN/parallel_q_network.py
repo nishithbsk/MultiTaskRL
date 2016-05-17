@@ -104,8 +104,17 @@ class ParallelQNetwork():
 		if args.watch:
 			print("Loading Saved Network...")
 			load_path = tf.train.latest_checkpoint(self.path)
+                        print("Obtained Network from: %s" % load_path)
 			self.saver.restore(self.sess, load_path)
-			print("Network Loaded")		
+			print("Network Loaded")	
+                elif args.retrain:
+			self.sess.run(tf.initialize_all_variables())
+                        print("Loading Saved Network...")
+			load_path = tf.train.latest_checkpoint(self.path)
+                        print("Obtained Network from: %s" % load_path)
+			self.saver.restore(self.sess, load_path)
+			print("Network Loaded")
+                        self.summary_writer = tf.train.SummaryWriter('records/' + args.game + '/' + args.agent_type + '/' + args.agent_name + '/params', self.sess.graph)
 		else:
 			self.sess.run(tf.initialize_all_variables())
 			print("Network Initialized")
